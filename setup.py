@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from setuptools import setup
 
 setup(name='jasonpi',
@@ -9,4 +12,6 @@ setup(name='jasonpi',
       author_email='gobadiah@gmail.com',
       license='MIT',
       packages=['jasonpi'],
+      setup_requires=['pytest-runner'],
+      tests_require=['pytest'],
       zip_safe=True)
