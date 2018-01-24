@@ -12,7 +12,7 @@ from rest_framework import \
     exceptions, \
     parsers, \
     mixins, \
-    renderers as defaultRenderers
+    renderers as default_renderers
 from rest_framework.decorators import \
     api_view, \
     permission_classes, \
@@ -20,7 +20,7 @@ from rest_framework.decorators import \
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from rest_framework_json_api import renderers, parsers as JsonAPIParsers
+from rest_framework_json_api import renderers, parsers as jsonapi_parsers
 
 from jasonpi.serializers import \
     UserSerializer as JPIUserSerializer, \
@@ -57,15 +57,15 @@ class AuthSignInView(APIView):
         token = get_token(user)
         user.last_login = datetime.now(timezone.utc)
         user.save()
-        userSerializer = UserSerializer(user, context={'request': request})
-        response = Response(userSerializer.data)
+        user_serializer = UserSerializer(user, context={'request': request})
+        response = Response(user_serializer.data)
         response.set_cookie(
             'access_token',
             token,
             secure=not settings.DEBUG,
             httponly=True
         )
-        userSerializer.token = token
+        user_serializer.token = token
         return response
 
 
@@ -84,31 +84,31 @@ class AuthProviderView(APIView):
     resource_name = 'users'
 
     def post(self, request):
-        providerSerializer = ProviderSerializer(
+        provider_serializer = ProviderSerializer(
             data=request.data,
             context={'request': request}
         )
-        providerSerializer.is_valid(raise_exception=True)
-        providerSerializer.save()
-        user = providerSerializer.instance
+        provider_serializer.is_valid(raise_exception=True)
+        provider_serializer.save()
+        user = provider_serializer.instance
         token = get_token(user)
         user.last_login = datetime.now(timezone.utc)
         user.save()
-        userSerializer = UserSerializer(user, context={'request': request})
-        response = Response(userSerializer.data)
+        user_serializer = UserSerializer(user, context={'request': request})
+        response = Response(user_serializer.data)
         response.set_cookie(
             'access_token',
             token,
             secure=not settings.DEBUG,
             httponly=True
         )
-        userSerializer.token = token
+        user_serializer.token = token
         return response
 
 
 class AuthRegisterView(mixins.CreateModelMixin,
                        viewsets.GenericViewSet):
-    parser_classes = (JsonAPIParsers.JSONParser, )
+    parser_classes = (jsonapi_parsers.JSONParser, )
     serializer_class = UserSerializer
     permission_classes = (AllowAny, )
     resource_name = 'users'
@@ -131,12 +131,12 @@ class AuthRegisterView(mixins.CreateModelMixin,
 
 
 @api_view()
-@renderer_classes([defaultRenderers.JSONRenderer])
+@renderer_classes([default_renderers.JSONRenderer])
 def s3_get_presigned_url(request):
     s3 = boto3.client('s3')
     type = request.GET.get('type', 'profile')
-    objectName = request.GET.get('objectName')
-    ext = objectName.split('.')[-1]
+    object_name = request.GET.get('object_name')
+    ext = object_name.split('.')[-1]
     if type == 'profile':
         key = '%d/profile/%s_%s.%s' % (
             request.user.id,

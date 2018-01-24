@@ -12,6 +12,13 @@ setup(name='jasonpi',
       author_email='gobadiah@gmail.com',
       license='MIT',
       packages=['jasonpi'],
+      install_requires=[
+          'pyjwt',
+          'httplib2',
+          'oauth2client',
+          'google-api-python-client',
+          'facebook-sdk'
+      ],
       setup_requires=['pytest-runner'],
       tests_require=['pytest'],
       zip_safe=True)

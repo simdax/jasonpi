@@ -1,9 +1,11 @@
 import jwt
 import datetime
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework.authentication import BaseAuthentication
 from rest_framework import exceptions, views
-from kincube.models import User
+
+User = get_user_model()
 
 
 def get_token(user):
