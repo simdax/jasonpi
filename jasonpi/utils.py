@@ -9,14 +9,23 @@ User = get_user_model()
 
 
 def get_token(user):
-    return jwt.encode(
+    token = jwt.encode(
         {
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
+            'exp': datetime.datetime.utcnow() +
+            getattr(
+                settings,
+                'JASONPI_TOKEN_DURATION',
+                datetime.timedelta(days=1),
+            ),
             'user_id': user.id,
         },
         settings.SECRET_KEY,
         algorithm='HS256'
     )
+    if type(token) == bytes:
+        return token.decode('utf-8')
+    else:
+        return token
 
 
 class JWTAuthentication(BaseAuthentication):

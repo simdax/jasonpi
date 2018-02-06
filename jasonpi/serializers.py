@@ -53,7 +53,7 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
         try:
             credential = AccessTokenCredentials(
                 access_token,
-                'kincube/1.0'
+                'jasonpi/1.0'
             )
         except AccessTokenCredentialsError:
             raise exceptions.ValidationError(_('Invalid access token'))
@@ -80,6 +80,9 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
             raise exceptions.ValidationError(
                 _('Facebook user id doesn\'t match'))
         return facebook_profile(user)
+
+    def get_unique_together_validators(self):
+        return []
 
     def validate(self, data):
         access_token = data.get('access_token')
@@ -238,7 +241,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_fields(self):
         fields = super(UserSerializer, self).get_fields()
-        limited_fields = getattr(self.Meta, 'limited_fields', [])
+        limited_fields = getattr(self.Meta, 'limited_fields', fields)
         request = self.context.get('request', None)
         instance = self.instance
         if (instance and request is not None and request.user != instance) or \
