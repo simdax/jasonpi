@@ -19,7 +19,7 @@ from googleapiclient.discovery import build
 import facebook
 
 from jasonpi.models import Provider
-from jasonpi.normalizers import getFacebookProfile, getGoogleProfile
+from jasonpi.normalizers import facebook_profile, google_profile
 
 User = get_user_model()
 
@@ -49,11 +49,11 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
                 self.user = user
         super(ProviderSerializer, self).__init__(*args, **kwargs)
 
-    def validateGoogle(self, access_token, uid):
+    def validate_google(self, access_token, uid):
         try:
             credential = AccessTokenCredentials(
                 access_token,
-                'kincube/1.0'
+                'jasonpi/1.0'
             )
         except AccessTokenCredentialsError:
             raise exceptions.ValidationError(_('Invalid access token'))
@@ -64,13 +64,13 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
             resourceName='people/me',
             personFields='addresses,emailAddresses,names,genders,birthdays'
         ).execute()
-        userId = user['resourceName'].split('/')[1]
-        if uid != userId:
+        user_id = user['resourceName'].split('/')[1]
+        if uid != user_id:
             raise exceptions.ValidationError(
                 _('Google user id doesn\'t match'))
-        return getGoogleProfile(user)
+        return google_profile(user)
 
-    def validateFacebook(self, access_token, uid):
+    def validate_facebook(self, access_token, uid):
         graph = facebook.GraphAPI(access_token=access_token)
         user = graph.get_object(
             id='me',
@@ -79,16 +79,19 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
         if user['id'] != uid:
             raise exceptions.ValidationError(
                 _('Facebook user id doesn\'t match'))
-        return getFacebookProfile(user)
+        return facebook_profile(user)
+
+    def get_unique_together_validators(self):
+        return []
 
     def validate(self, data):
         access_token = data.get('access_token')
         uid = data.get('uid')
         provider = data.get('provider')
         if provider == 'google':
-            profile = self.validateGoogle(access_token, uid)
+            profile = self.validate_google(access_token, uid)
         elif provider == 'facebook':
-            profile = self.validateFacebook(access_token, uid)
+            profile = self.validate_facebook(access_token, uid)
         else:
             raise exceptions.ValidationError(_('Provider not supported'))
         data['profile'] = profile
@@ -238,7 +241,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_fields(self):
         fields = super(UserSerializer, self).get_fields()
-        limited_fields = getattr(self.Meta, 'limited_fields', [])
+        limited_fields = getattr(self.Meta, 'limited_fields', fields)
         request = self.context.get('request', None)
         instance = self.instance
         if (instance and request is not None and request.user != instance) or \

@@ -1,8 +1,14 @@
 from datetime import datetime, date, timezone
+import os
+import hashlib
+import base64
+import hmac
+import json
 import uuid
 import boto3
-import os
+import re
 
+from django.http import HttpResponseBadRequest
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils.module_loading import import_string
@@ -12,7 +18,7 @@ from rest_framework import \
     exceptions, \
     parsers, \
     mixins, \
-    renderers as defaultRenderers
+    renderers as default_renderers
 from rest_framework.decorators import \
     api_view, \
     permission_classes, \
@@ -20,7 +26,7 @@ from rest_framework.decorators import \
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from rest_framework_json_api import renderers, parsers as JsonAPIParsers
+from rest_framework_json_api import renderers, parsers as jsonapi_parsers
 
 from jasonpi.serializers import \
     UserSerializer as JPIUserSerializer, \
@@ -33,6 +39,17 @@ if hasattr(settings, 'USER_SERIALIZER'):
     UserSerializer = import_string(settings.USER_SERIALIZER)
 else:
     UserSerializer = JPIUserSerializer
+
+if hasattr(settings, 'S3_KEY_GETTER'):
+    s3_key_getter = import_string(settings.S3_KEY_GETTER)
+else:
+    def s3_key_getter(request, ext):
+        return 'u%d/misc/%s_%s.%s' % (
+            request.user.id,
+            date.today().strftime('%Y-%m-%d'),
+            uuid.uuid4(),
+            ext
+        )
 
 
 class AuthSignInView(APIView):
@@ -57,15 +74,15 @@ class AuthSignInView(APIView):
         token = get_token(user)
         user.last_login = datetime.now(timezone.utc)
         user.save()
-        userSerializer = UserSerializer(user, context={'request': request})
-        response = Response(userSerializer.data)
+        user_serializer = UserSerializer(user, context={'request': request})
+        response = Response(user_serializer.data)
         response.set_cookie(
             'access_token',
             token,
             secure=not settings.DEBUG,
             httponly=True
         )
-        userSerializer.token = token
+        user_serializer.token = token
         return response
 
 
@@ -84,31 +101,38 @@ class AuthProviderView(APIView):
     resource_name = 'users'
 
     def post(self, request):
-        providerSerializer = ProviderSerializer(
-            data=request.data,
-            context={'request': request}
-        )
-        providerSerializer.is_valid(raise_exception=True)
-        providerSerializer.save()
-        user = providerSerializer.instance
-        token = get_token(user)
-        user.last_login = datetime.now(timezone.utc)
-        user.save()
-        userSerializer = UserSerializer(user, context={'request': request})
-        response = Response(userSerializer.data)
-        response.set_cookie(
-            'access_token',
-            token,
-            secure=not settings.DEBUG,
-            httponly=True
-        )
-        userSerializer.token = token
-        return response
+        try:
+            provider_serializer = ProviderSerializer(
+                data=request.data,
+                context={'request': request}
+            )
+            provider_serializer.is_valid(raise_exception=True)
+            provider_serializer.save()
+            user = provider_serializer.instance
+            token = get_token(user)
+            user.last_login = datetime.now(timezone.utc)
+            user.save()
+            user_serializer = UserSerializer(
+                user,
+                context={'request': request},
+            )
+            response = Response(user_serializer.data)
+            response.set_cookie(
+                'access_token',
+                token,
+                secure=not settings.DEBUG,
+                httponly=True
+            )
+            user_serializer.token = token
+            return response
+        except Exception as e:
+            print(e)
+            raise e
 
 
 class AuthRegisterView(mixins.CreateModelMixin,
                        viewsets.GenericViewSet):
-    parser_classes = (JsonAPIParsers.JSONParser, )
+    parser_classes = (jsonapi_parsers.JSONParser, )
     serializer_class = UserSerializer
     permission_classes = (AllowAny, )
     resource_name = 'users'
@@ -131,20 +155,19 @@ class AuthRegisterView(mixins.CreateModelMixin,
 
 
 @api_view()
-@renderer_classes([defaultRenderers.JSONRenderer])
+@renderer_classes([default_renderers.JSONRenderer])
 def s3_get_presigned_url(request):
     s3 = boto3.client('s3')
-    type = request.GET.get('type', 'profile')
-    objectName = request.GET.get('objectName')
-    ext = objectName.split('.')[-1]
-    if type == 'profile':
-        key = '%d/profile/%s_%s.%s' % (
-            request.user.id,
-            date.today().strftime('%Y-%m-%d'),
-            uuid.uuid4(),
-            ext
-        )
-    bucket = os.environ.get('BUCKET', 'kincube-development')
+    object_name = request.GET.get('objectName')
+    ext = object_name.split('.')[-1]
+    key = s3_key_getter(request, ext)
+    bucket = settings.BUCKET
+    user_id = request.user.id
+    regex = re.compile(
+        r'%d/assets/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-z-]+\.[^\.]+' % user_id,
+    )
+    if not regex.match(key):
+        raise HttpResponseBadRequest({'error': 'Wrong S3 Key'})
     params = {
         'Bucket': bucket,
         'Key': key,
@@ -159,3 +182,45 @@ def s3_get_presigned_url(request):
         ExpiresIn=3600
     )
     return Response({'signedUrl': url})
+
+
+@api_view(['POST'])
+@renderer_classes([default_renderers.JSONRenderer])
+def s3_sign_policy_document(request):
+    request_payload = json.loads(request.body)
+    headers = request_payload.get('headers', None)
+    if headers:
+        # The presence of the 'headers' property in the request payload
+        # means this is a request to sign a REST/multipart request
+        # and NOT a policy document
+        response_data = sign_headers(headers)
+    else:
+        response_data = sign_policy_document(request_payload)
+    return Response(response_data)
+
+
+def sign_headers(headers):
+    """ Sign and return the headers for a chunked upload. """
+    return {
+        'signature': base64.b64encode(hmac.new(
+            os.environ.get('AWS_SECRET_ACCESS_KEY').encode('utf-8'),
+            headers.encode('utf-8'),
+            hashlib.sha1,
+        ).digest()).decode('utf-8'),
+    }
+
+
+def sign_policy_document(policy_document):
+    """ Sign and return the policy doucument for a simple upload.
+    http://aws.amazon.com/articles/1434/#signyours3postform
+    """
+    policy = base64.b64encode(json.dumps(policy_document).encode('utf-8'))
+    signature = base64.b64encode(hmac.new(
+        os.environ.get('AWS_SECRET_ACCESS_KEY').encode('utf-8'),
+        policy,
+        hashlib.sha1,
+    ).digest())
+    return {
+        'policy': policy.decode('utf-8'),
+        'signature': signature.decode('utf-8'),
+    }

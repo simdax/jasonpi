@@ -1,20 +1,31 @@
 import jwt
 import datetime
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework.authentication import BaseAuthentication
 from rest_framework import exceptions, views
-from kincube.models import User
+
+User = get_user_model()
 
 
 def get_token(user):
-    return jwt.encode(
+    token = jwt.encode(
         {
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
+            'exp': datetime.datetime.utcnow() +
+            getattr(
+                settings,
+                'JASONPI_TOKEN_DURATION',
+                datetime.timedelta(days=1),
+            ),
             'user_id': user.id,
         },
         settings.SECRET_KEY,
         algorithm='HS256'
     )
+    if type(token) == bytes:
+        return token.decode('utf-8')
+    else:
+        return token
 
 
 class JWTAuthentication(BaseAuthentication):
