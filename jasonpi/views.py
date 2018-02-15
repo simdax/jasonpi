@@ -126,7 +126,6 @@ class AuthProviderView(APIView):
             user_serializer.token = token
             return response
         except Exception as e:
-            print(e)
             raise e
 
 
@@ -164,7 +163,8 @@ def s3_get_presigned_url(request):
     bucket = settings.BUCKET
     user_id = request.user.id
     regex = re.compile(
-        r'%d/assets/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-z-]+\.[^\.]+' % user_id,
+        r'u?%d/(assets|misc)/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-z-]+\.[^\.]+' %
+        user_id,
     )
     if not regex.match(key):
         raise HttpResponseBadRequest({'error': 'Wrong S3 Key'})
