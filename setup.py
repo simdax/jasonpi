@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='jasonpi',
-    version='0.2.0',
+    version='0.3.0',
     description='Authentication package to use with '
                 'django-rest-framework & json-api',
     url='http://github.com/gobadiah/jasonpi',
