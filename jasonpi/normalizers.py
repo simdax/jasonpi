@@ -2,6 +2,7 @@ import datetime
 
 
 def google_profile(data):
+    print(data)
     profile = {
         'email': data['emailAddresses'][0]['value'],
         'first_name': data['names'][0]['givenName'],
@@ -16,9 +17,13 @@ def google_profile(data):
 
 def facebook_profile(data):
     profile = data.copy()
+    print(profile)
     try:
         profile['birthday'] = \
             datetime.datetime.strptime(data['birthday'], "%m/%d/%Y").date()
     except ValueError:
         pass
+    if 'picture' in data:
+        if type(data['picture']) == dict:
+            profile['picture'] = data['picture']['data']['url']
     return profile

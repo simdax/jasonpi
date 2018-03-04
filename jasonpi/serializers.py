@@ -39,7 +39,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class ProviderSerializer(serializers.HyperlinkedModelSerializer):
-    access_token = serializers.CharField(max_length=255, write_only=True)
+    access_token = serializers.CharField(max_length=1025, write_only=True)
 
     def __init__(self, *args, **kwargs):
         self.user = None

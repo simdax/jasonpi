@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
     name='jasonpi',
-    version='0.3.0',
+    version='0.4.0',
     description='Authentication package to use with '
                 'django-rest-framework & json-api',
     url='http://github.com/gobadiah/jasonpi',
     author='Michaël Journo',
     author_email='gobadiah@gmail.com',
     license='MIT',
-    packages=['jasonpi'],
+    packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         'pyjwt',
         'httplib2',

@@ -32,6 +32,7 @@ class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         token = None
         authorization = request.META.get('HTTP_AUTHORIZATION', None)
+        print('access_token' in request.COOKIES, request.COOKIES)
         if authorization is not None and authorization.find('Bearer ') == 0:
             token = authorization[7:]
         elif 'access_token' in request.COOKIES:

@@ -110,6 +110,7 @@ class AuthProviderView(APIView):
             provider_serializer.save()
             user = provider_serializer.instance
             token = get_token(user)
+            print('AuthProviderView token =', token)
             user.last_login = datetime.now(timezone.utc)
             user.save()
             user_serializer = UserSerializer(
