@@ -6,11 +6,6 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 
-class ExtraTimeFields(object):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-
 class UserEmailManager(BaseUserManager):
     """Define a model manager for User model with no username field."""
 
@@ -45,7 +40,7 @@ class UserEmailManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields)
 
 
-class BaseUser(AbstractUser, ExtraTimeFields):
+class BaseUser(AbstractUser):
     objects = UserEmailManager()
 
     REQUIRED_FIELDS = []
@@ -55,9 +50,12 @@ class BaseUser(AbstractUser, ExtraTimeFields):
     email = models.EmailField(_('email address'), unique=True)
     birthday = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return '%s %s <%s>' % (self.first_name, self.last_name, self.email)
 
     class Meta:
+        ordering = ['id']
         abstract = True

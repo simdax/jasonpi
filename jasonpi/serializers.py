@@ -43,7 +43,9 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
 
     def __init__(self, *args, **kwargs):
         self.user = None
-        if 'context' in kwargs and 'request' in kwargs['context']:
+        if 'context' in kwargs and \
+                'request' in kwargs['context'] and \
+                hasattr(kwargs['context']['request'], 'user'):
             user = kwargs['context']['request'].user
             if user.is_authenticated:
                 self.user = user
@@ -195,6 +197,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         password = data.get('password')
         if password is None:
             # if password is None it means it is not required
+            # e.g. PATCH request
             return super(UserSerializer, self).validate(data)
 
         errors = dict()
@@ -244,8 +247,12 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         limited_fields = getattr(self.Meta, 'limited_fields', fields)
         request = self.context.get('request', None)
         instance = self.instance
-        if (instance and request is not None and request.user != instance) or \
-                type(instance) == list:
+        if (
+                instance and
+                request is not None and
+                hasattr(request, 'user') and
+                request.user != instance
+        ) or type(instance) == list:
             result = fields.copy()
             for field in fields:
                 if field not in limited_fields:
