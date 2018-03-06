@@ -31,7 +31,7 @@ from rest_framework_json_api import renderers, parsers as jsonapi_parsers
 from jasonpi.serializers import \
     UserSerializer as JPIUserSerializer, \
     ProviderSerializer
-from jasonpi.utils import get_token
+from jasonpi.auth import get_token
 
 User = get_user_model()
 
