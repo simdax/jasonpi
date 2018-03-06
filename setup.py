@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='jasonpi',
-    version='0.4.2',
+    version='0.5.0',
     description='Authentication package to use with '
                 'django-rest-framework & json-api',
     url='http://github.com/gobadiah/jasonpi',
@@ -15,6 +15,8 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
+        'djangorestframework',
+        'django',
         'boto3',
         'pyjwt',
         'httplib2',

@@ -21,6 +21,8 @@ import facebook
 from jasonpi.models import Provider
 from jasonpi.normalizers import facebook_profile, google_profile
 
+from jasonpi.utils import resource_related_field
+
 User = get_user_model()
 
 
@@ -162,22 +164,16 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
-    groups = ResourceRelatedField(
-        queryset=Group.objects,
-        many=True,
-        related_link_view_name='user-groups-list',
-        related_link_url_kwarg='user_pk',
-        self_link_view_name='user-relationships',
-        required=False,
+    groups = resource_related_field(
+        Group,
+        'user',
+        'groups',
     )
 
-    providers = ResourceRelatedField(
-        queryset=Provider.objects,
-        many=True,
-        related_link_view_name='user-providers-list',
-        related_link_url_kwarg='user_pk',
-        self_link_view_name='user-relationships',
-        required=False,
+    providers = resource_related_field(
+        Provider,
+        'user',
+        'providers',
     )
 
     included_serializers = {
@@ -262,7 +258,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = User
-        fields = ('url', 'email', 'password', 'old_password', 'groups')
+        fields = ('url', 'email', 'password', 'old_password', 'providers')
 
 
 def init_kwargs(model, kwargs):
