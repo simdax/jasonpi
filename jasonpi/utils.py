@@ -21,7 +21,7 @@ def resource_relationships(name, view):
 def one_to_one_relationship(name, relation, viewset):
     """Return urls for a one to one relationship."""
     return path(
-        '%s/<%s_pk:int>/%s' % (
+        '%s/<int:%s_pk>/%s' % (
             engine.plural(name),
             name,
             relation,
