@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='jasonpi',
-    version='0.6.0',
+    version='0.6.1',
     description='Authentication package to use with '
                 'django-rest-framework & json-api',
     url='http://github.com/gobadiah/jasonpi',
@@ -23,6 +23,7 @@ setup(
         'oauth2client',
         'google-api-python-client',
         'facebook-sdk',
+        'inflect',
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
