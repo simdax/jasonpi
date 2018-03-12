@@ -2,7 +2,11 @@
 
 from django.urls import path
 
+import inflect
+
 from rest_framework_json_api.relations import ResourceRelatedField
+
+engine = inflect.engine()
 
 
 def resource_relationships(name, view):
@@ -11,6 +15,22 @@ def resource_relationships(name, view):
         '%s/<int:pk>/relationships/<related_field>' % name,
         view,
         name='%s-relationships' % name,
+    )
+
+
+def one_to_one_relationship(name, relation, viewset):
+    """Return urls for a one to one relationship."""
+    return path(
+        '%s/<%s_pk:int>/%s' % (
+            engine.plural(name),
+            name,
+            relation,
+        ),
+        viewset.as_view({'get': 'retrieve'}),
+        name='%s-%s-detail' % (
+            name,
+            relation,
+        ),
     )
 
 
