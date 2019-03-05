@@ -11,10 +11,7 @@ def google_profile(data):
     }
     if 'birthdays' in data and len(data['birthdays']) > 0:
         bd = data['birthdays'][0]['date']
-        try:
-            profile['birthday'] = datetime.date(bd['year'], bd['month'], bd['day'])
-        except KeyError:
-            profile['birthday'] = datetime.date(1900, 1, 1)
+        profile['birthday'] = datetime.date(bd.get('year', 1900), bd.get('month', 1), bd.get('day', 1))
     return profile
 
 
