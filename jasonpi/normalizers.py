@@ -7,7 +7,7 @@ def google_profile(data):
         'email': data['emailAddresses'][0]['value'],
         'first_name': data['names'][0]['givenName'],
         'last_name': data['names'][0]['familyName'],
-        'gender': data['genders'][0]['value'],
+        'gender': data.get('genders', '')[0]['value'],
     }
     if 'birthdays' in data and len(data['birthdays']) > 0:
         bd = data['birthdays'][0]['date']
